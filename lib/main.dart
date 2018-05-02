@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -36,20 +37,26 @@ class MainContainerPage extends StatefulWidget {
 }
 
 class _MainContainerPageState extends State<MainContainerPage> {
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      new GlobalKey<RefreshIndicatorState>();
   @override
   void initState() {
     super.initState();
     _getVideoListInfo();
   }
 
-  _getVideoListInfo() async {
-    var url = "http://baobab.kaiyanapp.com/api/v5/index/tab/feed?num=0&page=1&uuid=97cb741ce0b4442aaca94749a506b380ca2fb30f&vc=220&vn=3.10";
-    http.get(url)
-        .then((response){
+  Future<Null> _getVideoListInfo() {
+    var url =
+        "http://baobab.kaiyanapp.com/api/v5/index/tab/feed?num=0&page=1&uuid=97cb741ce0b4442aaca94749a506b380ca2fb30f&vc=220&vn=3.10";
+    return http.get(url).then((response) {
       Map videoMap = json.decode(response.body);
       VideoListInfo info = new VideoListInfo.fromJson(videoMap);
-      List<VideoData> videoDatas = info.itemList.where((VideoData videoDate) =>VIDEO_ITEM_TYPE_FOLLOW == videoDate.type).toList();
-      List<Video> videos =  videoDatas.map((VideoData videoDate)=>videoDate.data).toList();
+      List<VideoData> videoDatas = info.itemList
+          .where(
+              (VideoData videoDate) => VIDEO_ITEM_TYPE_FOLLOW == videoDate.type)
+          .toList();
+      List<Video> videos =
+          videoDatas.map((VideoData videoDate) => videoDate.data).toList();
       setState(() {
         widget.videos.clear();
         widget.videos.addAll(videos);
@@ -93,8 +100,8 @@ class _MainContainerPageState extends State<MainContainerPage> {
               accountName: new Text('User Name'),
               accountEmail: new Text('email@example.com'),
               currentAccountPicture: new CircleAvatar(
-                backgroundImage: new CachedNetworkImageProvider("https://avatars2.githubusercontent.com/u/18547710?s=460&v=4")
-              ),
+                  backgroundImage: new CachedNetworkImageProvider(
+                      "https://avatars2.githubusercontent.com/u/18547710?s=460&v=4")),
               onDetailsPressed: () {},
             ),
             new ListTile(
@@ -141,10 +148,11 @@ class _MainContainerPageState extends State<MainContainerPage> {
         alignment: new Alignment(1.0, 1.0),
         children: <Widget>[
           new Center(
-            child: new CommonVideoList(videos: widget.videos),
-          ),
-          new MyBottomNavigation(
-          ),
+              child: new RefreshIndicator(
+                  key: _refreshIndicatorKey,
+                  child: new CommonVideoList(videos: widget.videos),
+                  onRefresh: _getVideoListInfo)),
+          new MyBottomNavigation(),
         ],
       ),
     );
