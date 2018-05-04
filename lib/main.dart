@@ -4,11 +4,36 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_aurora/bean/video.dart';
+import 'package:flutter_aurora/http/aurora_httpclient.dart';
 import 'package:flutter_aurora/widgets/bottom_navigation.dart';
 import 'package:flutter_aurora/widgets/common_video_list.dart';
+import 'package:flutter_aurora/widgets/multi_state_layout.dart';
 import 'package:http/http.dart' as http;
 
 void main() => runApp(new MyApp());
+
+const List<Choice> choices = const <Choice>[
+  const Choice(
+    title: '设置',
+  ),
+];
+
+class Choice {
+  final String title;
+
+  const Choice({this.title});
+}
+
+class MainContainerPage extends StatefulWidget {
+  final String title;
+
+  final List<Video> videos = new List();
+  ResultState resultState = ResultState.loading;
+  MainContainerPage({Key key, this.title}) : super(key: key);
+
+  @override
+  _MainContainerPageState createState() => new _MainContainerPageState();
+}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -26,44 +51,9 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MainContainerPage extends StatefulWidget {
-  MainContainerPage({Key key, this.title}) : super(key: key);
-
-  final String title;
-  final List<Video> videos = new List();
-
-  @override
-  _MainContainerPageState createState() => new _MainContainerPageState();
-}
-
 class _MainContainerPageState extends State<MainContainerPage> {
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       new GlobalKey<RefreshIndicatorState>();
-  @override
-  void initState() {
-    super.initState();
-    _getVideoListInfo();
-  }
-
-  Future<Null> _getVideoListInfo() {
-    var url =
-        "http://baobab.kaiyanapp.com/api/v5/index/tab/feed?num=0&page=1&uuid=97cb741ce0b4442aaca94749a506b380ca2fb30f&vc=220&vn=3.10";
-    return http.get(url).then((response) {
-      Map videoMap = json.decode(response.body);
-      VideoListInfo info = new VideoListInfo.fromJson(videoMap);
-      List<VideoData> videoDatas = info.itemList
-          .where(
-              (VideoData videoDate) => VIDEO_ITEM_TYPE_FOLLOW == videoDate.type)
-          .toList();
-      List<Video> videos =
-          videoDatas.map((VideoData videoDate) => videoDate.data).toList();
-      setState(() {
-        widget.videos.clear();
-        widget.videos.addAll(videos);
-      });
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
@@ -147,26 +137,62 @@ class _MainContainerPageState extends State<MainContainerPage> {
         // in the middle of the parent.
         alignment: new Alignment(1.0, 1.0),
         children: <Widget>[
-          new Center(
-              child: new RefreshIndicator(
-                  key: _refreshIndicatorKey,
-                  child: new CommonVideoList(videos: widget.videos),
-                  onRefresh: _getVideoListInfo)),
+          new MultiStateView(
+            content: new Center(
+                child: new RefreshIndicator(
+                    key: _refreshIndicatorKey,
+                    child: new CommonVideoList(videos: widget.videos),
+                    onRefresh: _getVideoListInfo)),
+            resultState: widget.resultState,
+            retry: _getVideoListInfo,
+          ),
           new MyBottomNavigation(),
         ],
       ),
     );
   }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.resultState = ResultState.loading;
+    _getVideoListInfo();
+  }
+
+  Future<Null> _getVideoListInfo() {
+    setState(() {
+      widget.resultState = ResultState.loading;
+    });
+    var client = new AuroraHttpClient();
+    var url = "v5/index/tab/feed";
+    return client.getWithParams(
+      url,
+      params: {
+        'num': '0',
+        'page': '1',
+        'uuid': '97cb741ce0b4442aaca94749a506b380ca2fb30f',
+        'vc': '220',
+        'vn': '3.10',
+      },
+    ).then((response) {
+      Map videoMap = json.decode(response.body);
+      VideoListInfo info = new VideoListInfo.fromJson(videoMap);
+      List<VideoData> videoDatas = info.itemList
+          .where(
+              (VideoData videoDate) => VIDEO_ITEM_TYPE_FOLLOW == videoDate.type)
+          .toList();
+      List<Video> videos =
+          videoDatas.map((VideoData videoDate) => videoDate.data).toList();
+      setState(() {
+        widget.videos.clear();
+        widget.videos.addAll(videos);
+        widget.resultState = ResultState.success;
+      });
+    },onError: (e){
+      setState(() {
+        widget.videos.clear();
+        widget.resultState = ResultState.error;
+      });
+    });
+  }
 }
-
-class Choice {
-  const Choice({this.title});
-
-  final String title;
-}
-
-const List<Choice> choices = const <Choice>[
-  const Choice(
-    title: '设置',
-  ),
-];

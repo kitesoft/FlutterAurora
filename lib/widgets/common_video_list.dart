@@ -27,8 +27,8 @@ class CommonVideoListItem extends StatelessWidget {
     int hours = (duration ~/ 3600) ;
     int minutes = (duration % 3600 ~/ 60) ;
     int seconds = duration - hours *3600 - minutes *60;
-    String hour = hours == 0 ? "00": hours>9? hours:"0"+hours.toString();  
-    String minute = minutes == 0 ? "00": minutes>9? minutes:"0"+minutes.toString();  
+    String hour = hours == 0 ? "00": hours>9? hours.toString():"0"+hours.toString();
+    String minute = minutes == 0 ? "00": minutes>9? minutes.toString():"0"+minutes.toString();
     String second = seconds == 0 ? "00": seconds>9? seconds.toString():"0"+seconds.toString();
     String timeStr = (hour +":" +minute +":" + second);
     String str = '#${video.category == null
