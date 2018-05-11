@@ -4,8 +4,12 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_aurora/bean/video.dart';
+import 'package:flutter_aurora/http/api/api.dart';
 import 'package:flutter_aurora/http/aurora_httpclient.dart';
+import 'package:flutter_aurora/res/colors.dart';
+import 'package:flutter_aurora/res/strings.dart';
 import 'package:flutter_aurora/widgets/bottom_navigation.dart';
+import 'package:flutter_aurora/widgets/common_list_load_more.dart';
 import 'package:flutter_aurora/widgets/common_video_list.dart';
 import 'package:flutter_aurora/widgets/multi_state_layout.dart';
 import 'package:http/http.dart' as http;
@@ -14,7 +18,7 @@ void main() => runApp(new MyApp());
 
 const List<Choice> choices = const <Choice>[
   const Choice(
-    title: '设置',
+    title: AuroraStrings.setting,
   ),
 ];
 
@@ -28,7 +32,8 @@ class MainContainerPage extends StatefulWidget {
   final String title;
 
   final List<Video> videos = new List();
-  ResultState resultState = ResultState.loading;
+  ResultState refreshState = ResultState.loading;
+  LoadMoreState loadMoreState = LoadMoreState.hide;
   MainContainerPage({Key key, this.title}) : super(key: key);
 
   @override
@@ -42,18 +47,20 @@ class MyApp extends StatelessWidget {
     return new MaterialApp(
       title: 'FlutterAurora',
       theme: new ThemeData(
-        primaryColor: new Color(0xffffc107),
-        primaryColorDark: new Color(0xffffa000),
-        accentColor: new Color(0xffffc107),
+        primaryColor: AuroraColors.primaryColor,
+        primaryColorDark: AuroraColors.primaryColor,
+        accentColor: AuroraColors.primaryColor,
       ),
-      home: new MainContainerPage(title: '首页'),
+      home: new MainContainerPage(title: AuroraStrings.home),
     );
   }
 }
 
 class _MainContainerPageState extends State<MainContainerPage> {
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
-      new GlobalKey<RefreshIndicatorState>();
+  int date = 0;
+  int num = 0;
+  final TrackingScrollController _scrollController =
+      new TrackingScrollController();
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
@@ -96,35 +103,35 @@ class _MainContainerPageState extends State<MainContainerPage> {
             ),
             new ListTile(
               leading: new Icon(Icons.home),
-              title: new Text('首页'),
+              title: new Text(AuroraStrings.home),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
             new ListTile(
               leading: new Icon(Icons.remove_red_eye),
-              title: new Text('关注'),
+              title: new Text(AuroraStrings.attention),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
             new ListTile(
               leading: new Icon(Icons.video_library),
-              title: new Text('缓存'),
+              title: new Text(AuroraStrings.cache),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
             new ListTile(
               leading: new Icon(Icons.history),
-              title: new Text('观看记录'),
+              title: new Text(AuroraStrings.history),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
             new ListTile(
               leading: new Icon(Icons.settings),
-              title: new Text('设置'),
+              title: new Text(AuroraStrings.setting),
               onTap: () {
                 Navigator.pop(context);
               },
@@ -137,46 +144,98 @@ class _MainContainerPageState extends State<MainContainerPage> {
         // in the middle of the parent.
         alignment: new Alignment(1.0, 1.0),
         children: <Widget>[
-          new MultiStateView(
-            content: new Center(
-                child: new RefreshIndicator(
-                    key: _refreshIndicatorKey,
-                    child: new CommonVideoList(videos: widget.videos),
-                    onRefresh: _getVideoListInfo)),
-            resultState: widget.resultState,
-            retry: _getVideoListInfo,
-          ),
-          new MyBottomNavigation(),
+//          new MultiStateView(
+//            content: new Center(
+//              child: new NotificationListener(
+//                onNotification: _onNotification,
+//                child: new RefreshIndicator(
+//                  key: _refreshIndicatorKey,
+//                  child: new CommonVideoList(
+//                    videos: widget.videos,
+//                  ),
+//                  onRefresh: _getVideoListInfo,
+//                ),
+//              ),
+//            ),
+//            resultState: widget.resultState,
+//            retry: _retry,
+//          ),
+          new CommonVideoList(videos: widget.videos,resultState: widget.refreshState,onRefresh:_getVideoListInfo,retry: _retry,loadMoreState: widget.loadMoreState,onLoadMore: _LoadMoreVideoListInfo,),
         ],
       ),
+
+      bottomNavigationBar: new MyBottomNavigation(),
     );
+  }
+
+  bool _onNotification(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification) {
+      // 当没去到底部的时候，maxScrollExtent和offset会相等，可以准确的判断到达底部还有多少距离时开始加载数据了。。
+      if (_scrollController.mostRecentlyUpdatedPosition.maxScrollExtent >
+              _scrollController.offset &&
+          _scrollController.mostRecentlyUpdatedPosition.maxScrollExtent -
+                  _scrollController.offset <=
+              50) {
+        // 要加载更多
+//        if (this.isMore && this.loadMoreStatus != LoadMoreStatus.loading) {
+//          // 有下一页
+//          print('load more');
+//          this.loadMoreStatus = LoadMoreStatus.loading;
+//          _loadMoreData();
+//          setState(() {});
+//
+//        } else {}
+      }
+    }
+    return true;
   }
 
   @override
   void initState() {
     super.initState();
-    widget.resultState = ResultState.loading;
+    widget.refreshState = ResultState.loading;
     _getVideoListInfo();
   }
 
-  Future<Null> _getVideoListInfo() {
+  Future<Null> _retry() {
     setState(() {
-      widget.resultState = ResultState.loading;
+      widget.refreshState = ResultState.loading;
     });
-    var client = new AuroraHttpClient();
-    var url = "v5/index/tab/feed";
-    return client.getWithParams(
-      url,
-      params: {
-        'num': '0',
-        'page': '1',
-        'uuid': '97cb741ce0b4442aaca94749a506b380ca2fb30f',
-        'vc': '220',
-        'vn': '3.10',
-      },
-    ).then((response) {
-      Map videoMap = json.decode(response.body);
-      VideoListInfo info = new VideoListInfo.fromJson(videoMap);
+    return _getVideoListInfo();
+  }
+
+  Future<Null> _LoadMoreVideoListInfo(){
+    setState(() {
+      widget.loadMoreState = LoadMoreState.showLoading;
+    });
+    return Api.getHomeVideoListInfo(date, num).then((response) {
+      VideoListInfo info = new VideoListInfo.fromJson(response.data);
+      date = _getDateFromNextPageUrl(info.nextPageUrl);
+      num = _getNumFromNextPageUrl(info.nextPageUrl);
+      List<VideoData> videoDatas = info.itemList
+          .where(
+              (VideoData videoDate) => VIDEO_ITEM_TYPE_FOLLOW == videoDate.type)
+          .toList();
+      List<Video> videos =
+      videoDatas.map((VideoData videoDate) => videoDate.data).toList();
+      setState(() {
+        widget.videos.addAll(videos);
+        widget.loadMoreState = LoadMoreState.hide;
+      });
+    }, onError: (e) {
+      setState(() {
+        widget.loadMoreState = LoadMoreState.error;
+      });
+    });
+  }
+
+  Future<Null> _getVideoListInfo() {
+    date = 0;
+    num = 0;
+    return Api.getHomeVideoListInfo(date, num).then((response) {
+      VideoListInfo info = new VideoListInfo.fromJson(response.data);
+      date = _getDateFromNextPageUrl(info.nextPageUrl);
+      num = _getNumFromNextPageUrl(info.nextPageUrl);
       List<VideoData> videoDatas = info.itemList
           .where(
               (VideoData videoDate) => VIDEO_ITEM_TYPE_FOLLOW == videoDate.type)
@@ -186,13 +245,32 @@ class _MainContainerPageState extends State<MainContainerPage> {
       setState(() {
         widget.videos.clear();
         widget.videos.addAll(videos);
-        widget.resultState = ResultState.success;
+        widget.refreshState = ResultState.success;
       });
-    },onError: (e){
+    }, onError: (e) {
       setState(() {
         widget.videos.clear();
-        widget.resultState = ResultState.error;
+        widget.refreshState = ResultState.error;
       });
-    });
+    }
+    );
   }
+
+  int _getDateFromNextPageUrl(String nextPageUrl){
+    String date = nextPageUrl?.substring(nextPageUrl.indexOf("date=") + 5, nextPageUrl.indexOf("&"));
+    if(date.isNotEmpty){
+      return int.parse(date);
+    }else{
+      return 0;
+    }
+  }
+  int _getNumFromNextPageUrl(String nextPageUrl){
+    String num = nextPageUrl?.substring(nextPageUrl.indexOf("num=") + 4, nextPageUrl.length);
+    if(num.isNotEmpty){
+      return int.parse(num);
+    }else{
+      return 0;
+    }
+  }
+
 }

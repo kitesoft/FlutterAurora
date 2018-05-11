@@ -2,33 +2,29 @@
 import 'dart:async';
 
 import 'package:http/http.dart' as http;
-
+import 'package:dio/dio.dart';
 
 
 const String BASE_URL = "http://baobab.kaiyanapp.com/api/";
 
 
 
-class AuroraHttpClient extends http.BaseClient {
+class AuroraHttpClient{
 
-  static final http.Client _httpClient = http.Client();
+  static final Options options= new Options(
+      baseUrl: BASE_URL,
+      connectTimeout:8000,
+      receiveTimeout:5000
+  );
+  static final Dio dio = new Dio(options);
   AuroraHttpClient();
 
-  @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
-    return _httpClient.send(request);
+  Future get(String path,data) {
+    return dio.get(path,data: data,options: new Options(method:"GET"));
   }
 
-  Future<http.Response> getWithParams(url, {Map<String, String> params}) {
-    String realUrl = BASE_URL;
-    if(params.length>0){
-      realUrl = realUrl+url+"?";
-      params.forEach((key,value){
-        realUrl = realUrl + key + "=" +value + "&";
-      });
-    }
-    // TODO: implement get
-    return super.get(realUrl);
+  Future post(String path,data) {
+    return dio.post(path,data: data,options: new Options(method:"POST"));
   }
 
 }

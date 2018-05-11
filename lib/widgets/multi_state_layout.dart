@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_aurora/res/colors.dart';
 
 class MultiStateView extends StatefulWidget {
   final Widget content;
@@ -7,10 +8,6 @@ class MultiStateView extends StatefulWidget {
   MultiStateView({Key key, this.retry, this.content, this.resultState:ResultState.loading})
       : super(key: key);
 
-  // The framework calls createState the first time a widget appears at a given
-  // location in the tree. If the parent rebuilds and uses the same type of
-  // widget (with the same key), the framework will re-use the State object
-  // instead of creating a new State object.
 
   @override
   _MultiStateViewState createState() => new _MultiStateViewState();
@@ -22,7 +19,7 @@ class _MultiStateViewState extends State<MultiStateView> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final TextStyle descriptionStyle = theme.textTheme.body1;
+    final TextStyle descriptionStyle = theme.textTheme.body2.copyWith(color: AuroraColors.textColor);
     return new Stack(
       children: <Widget>[
         new Offstage(
@@ -59,7 +56,8 @@ class _MultiStateViewState extends State<MultiStateView> {
                 ),
                 new RaisedButton(
                   onPressed: widget.retry,
-                  child: new Text("重试"),
+                  color: AuroraColors.primaryColor,
+                  child: new Text("重试",style: descriptionStyle.copyWith(color: Colors.white),),
                 ),
               ],
             ),
