@@ -8,6 +8,7 @@ import 'package:flutter_aurora/res/colors.dart';
 import 'package:flutter_aurora/res/strings.dart';
 import 'package:flutter_aurora/widgets/common_list_load_more.dart';
 import 'package:flutter_aurora/widgets/multi_state_layout.dart';
+import 'package:flutter_aurora/widgets/ripple.dart';
 
 class CommonVideoList extends StatefulWidget {
   final List<Video> videos;
@@ -36,7 +37,7 @@ class CommonVideoList extends StatefulWidget {
 }
 
 class CommonVideoListItem extends StatelessWidget {
-  static const double height = 300.0;
+  static const double height = 280.0;
   final Video video;
   CommonVideoListItem({Key key, @required this.video}) : super(key: key);
 
@@ -46,9 +47,10 @@ class CommonVideoListItem extends StatelessWidget {
     final TextStyle descriptionStyle = theme.textTheme.subhead;
     // TODO: implement build
     return new Container(
-      padding: const EdgeInsets.all(8.0),
+      padding: new EdgeInsets.all(8.0),
       height: height,
-      child: new Card(
+      child: new RippleCard(
+        onTap: () {},
         child: new Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -76,7 +78,9 @@ class CommonVideoListItem extends StatelessWidget {
                       radius: 22.0,
                       backgroundImage: new CachedNetworkImageProvider(
                           video.author == null
-                              ? video.content.data.author.icon
+                              ? (video.content.data.author == null
+                                  ? ""
+                                  : video.content.data.author.icon)
                               : video.author.icon),
                     ),
                     new Expanded(
@@ -148,16 +152,11 @@ class CommonVideoListItem extends StatelessWidget {
 
 class _VideoListState extends State<CommonVideoList> {
   double _dragOffset;
-  List<Video> _videos = new List<Video>();
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       new GlobalKey<RefreshIndicatorState>();
-  final TrackingScrollController _scrollController =
-      new TrackingScrollController();
 
   @override
   Widget build(BuildContext context) {
-    final TrackingScrollController _scrollController =
-        new TrackingScrollController();
 
     return new MultiStateView(
       content: new Center(
@@ -176,6 +175,58 @@ class _VideoListState extends State<CommonVideoList> {
       resultState: widget.resultState,
       retry: widget.retry,
     );
+
+
+
+//      new SafeArea(
+//      top: false,
+//      bottom: false,
+//      child: new Builder(
+//        builder: (BuildContext context) {
+//          return new MultiStateView(
+//            content: new Center(
+//              child: new NotificationListener(
+//                onNotification: _onNotification,
+//                child: new RefreshIndicator(
+//                  key: _refreshIndicatorKey,
+//                  child: new CustomScrollView(
+//                    slivers: <Widget>[
+//                      new SliverPadding(
+//                        padding: const EdgeInsets.all(8.0),
+//                        sliver: new Container(
+//                          child: new SliverList(
+//                            delegate:
+//                                new SliverChildListDelegate(_getListItems()),
+//                          ),
+//                        ),
+//                      ),
+//                    ],
+//                  ),
+//                  onRefresh: widget.onRefresh,
+//                ),
+//              ),
+//            ),
+//            resultState: widget.resultState,
+//            retry: widget.retry,
+//          );
+//        },
+//      ),
+//    );
+  }
+
+  List<Widget> _getListItems() {
+    List<Widget> list = new List();
+    widget.videos.forEach((Video video) {
+      Widget widget = new CommonVideoListItem(
+        key: new PageStorageKey("videoItem"),
+        video: video,
+      );
+      list.add(widget);
+    });
+    list.add(new CommonListLoadMore(
+      loadMoreState: widget.loadMoreState,
+    ));
+    return list;
   }
 
   bool _onNotification(ScrollNotification notification) {
@@ -185,29 +236,12 @@ class _VideoListState extends State<CommonVideoList> {
 
     if (notification is ScrollUpdateNotification) {
       _dragOffset -= notification.scrollDelta;
-      print(notification.metrics.extentAfter);
-      if (notification.metrics.extentAfter <= 80.0 &&
-          _dragOffset < 0.0) {
+      if (notification.metrics.extentAfter <= 80.0 && _dragOffset < 0.0) {
         if (widget.loadMoreState != LoadMoreState.showLoading) {
-          print('load more');
           widget.onLoadMore();
         }
       }
     }
     return true;
-  }
-
-  List<Widget> _getListItems() {
-    List<Widget> list = new List();
-    widget.videos.forEach((Video video) {
-      Widget widget = new CommonVideoListItem(
-        video: video,
-      );
-      list.add(widget);
-    });
-    list.add(new CommonListLoadMore(
-      loadMoreState: widget.loadMoreState,
-    ));
-    return list;
   }
 }

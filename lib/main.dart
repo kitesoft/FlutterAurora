@@ -3,16 +3,12 @@ import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_aurora/bean/video.dart';
-import 'package:flutter_aurora/http/api/api.dart';
-import 'package:flutter_aurora/http/aurora_httpclient.dart';
 import 'package:flutter_aurora/res/colors.dart';
 import 'package:flutter_aurora/res/strings.dart';
 import 'package:flutter_aurora/widgets/bottom_navigation.dart';
-import 'package:flutter_aurora/widgets/common_list_load_more.dart';
-import 'package:flutter_aurora/widgets/common_video_list.dart';
-import 'package:flutter_aurora/widgets/multi_state_layout.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_aurora/widgets/page/category_page.dart';
+import 'package:flutter_aurora/widgets/page/home_page.dart';
+import 'package:flutter_aurora/widgets/page/hot_page.dart';
 
 void main() => runApp(new MyApp());
 
@@ -20,6 +16,13 @@ const List<Choice> choices = const <Choice>[
   const Choice(
     title: AuroraStrings.setting,
   ),
+];
+const List<String> pageName = const <String>[
+  AuroraStrings.home,
+  AuroraStrings.hot,
+  AuroraStrings.category,
+  AuroraStrings.follow,
+  AuroraStrings.mine,
 ];
 
 class Choice {
@@ -29,12 +32,7 @@ class Choice {
 }
 
 class MainContainerPage extends StatefulWidget {
-  final String title;
-
-  final List<Video> videos = new List();
-  ResultState refreshState = ResultState.loading;
-  LoadMoreState loadMoreState = LoadMoreState.hide;
-  MainContainerPage({Key key, this.title}) : super(key: key);
+  MainContainerPage({Key key}) : super(key: key);
 
   @override
   _MainContainerPageState createState() => new _MainContainerPageState();
@@ -51,44 +49,206 @@ class MyApp extends StatelessWidget {
         primaryColorDark: AuroraColors.primaryColor,
         accentColor: AuroraColors.primaryColor,
       ),
-      home: new MainContainerPage(title: AuroraStrings.home),
+      home: new MainContainerPage(),
     );
   }
 }
 
-class _MainContainerPageState extends State<MainContainerPage> {
-  int date = 0;
-  int num = 0;
-  final TrackingScrollController _scrollController =
-      new TrackingScrollController();
+enum ShowTabState { hot, follow, hide }
+
+class _MainContainerPageState extends State<MainContainerPage>
+    with TickerProviderStateMixin {
+  PageController _pageController;
+  TabController _hotTabController;
+  TabController _followTabController;
+  ScrollController _scrollViewController;
+  ShowTabState showTabState = ShowTabState.hide;
+  TabBar hotTabBar;
+  TabBar followTabBar;
+  PageView pageView;
+  String title = AuroraStrings.home;
+  @override
+  void initState() {
+    super.initState();
+    _scrollViewController = new ScrollController();
+    _pageController = new PageController();
+    _hotTabController = new TabController(
+      length: 3,
+      initialIndex: 0,
+      vsync: this,
+    );
+    _followTabController = new TabController(
+      length: 2,
+      initialIndex: 0,
+      vsync: this,
+    );
+    hotTabBar = new TabBar(
+      labelColor: Colors.white,
+      controller: _hotTabController,
+      tabs: [
+        new Tab(
+          text: AuroraStrings.week_rank,
+        ),
+        new Tab(
+          text: AuroraStrings.month_rank,
+        ),
+        new Tab(
+          text: AuroraStrings.all_rank,
+        ),
+      ],
+    );
+    followTabBar = new TabBar(
+      labelColor: Colors.white,
+      controller: _followTabController,
+      tabs: [
+        new Tab(
+          text: AuroraStrings.hot_follow,
+        ),
+        new Tab(
+          text: AuroraStrings.my_follow,
+        ),
+      ],
+    );
+    pageView = new PageView(
+      onPageChanged: onPageChanged,
+      physics: new NeverScrollableScrollPhysics(),
+      controller: _pageController,
+      children: <Widget>[
+        new HomePage(),
+        new HotContainerPage(controller: _hotTabController),
+        new CategoryPage(),
+        new HomePage(),
+        new HomePage(),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollViewController.dispose();
+    _pageController.dispose();
+    _hotTabController.dispose();
+    super.dispose();
+  }
+
+  TabBar _getTabBar() {
+    if (showTabState == ShowTabState.hot) {
+      return hotTabBar;
+    } else if (showTabState == ShowTabState.follow) {
+      return followTabBar;
+    } else {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      appBar: new AppBar(
-        brightness: Brightness.dark,
-        iconTheme: new IconThemeData(color: Colors.white),
-        textTheme: Theme.of(context).textTheme.apply(
-              bodyColor: Colors.white,
-              displayColor: Colors.white,
+      body: new NestedScrollView(
+        controller: _scrollViewController,
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          return <Widget>[
+            new SliverAppBar(
+              pinned: (showTabState == ShowTabState.hot ||
+                      showTabState == ShowTabState.follow)
+                  ? true
+                  : false,
+              floating: true,
+              snap: true,
+              forceElevated: true,
+              brightness: Brightness.dark,
+              iconTheme: new IconThemeData(color: Colors.white),
+              textTheme: Theme.of(context).textTheme.apply(
+                    bodyColor: Colors.white,
+                    displayColor: Colors.white,
+                  ),
+              title: new Text(title),
+              bottom: _getTabBar(),
+              actions: <Widget>[
+                new IconButton(
+                  icon: new Icon(Icons.search),
+                  onPressed: () {},
+                ),
+                new PopupMenuButton<Choice>(
+                  itemBuilder: (BuildContext context) {
+                    return choices.map((Choice choice) {
+                      return new PopupMenuItem<Choice>(
+                        value: choice,
+                        child: new Text(choice.title),
+                      );
+                    }).toList();
+                  },
+                ),
+              ],
             ),
-        title: new Text(widget.title),
-        actions: <Widget>[
-          new IconButton(
-            icon: new Icon(Icons.search),
-            onPressed: () {},
-          ),
-          new PopupMenuButton<Choice>(
-            itemBuilder: (BuildContext context) {
-              return choices.map((Choice choice) {
-                return new PopupMenuItem<Choice>(
-                  value: choice,
-                  child: new Text(choice.title),
-                );
-              }).toList();
-            },
-          ),
-        ],
+          ];
+        },
+        body: pageView,
       ),
+//      new CustomScrollView(
+//        slivers: <Widget>[
+//          new SliverAppBar(
+//            floating: true,
+//            snap: true,
+//            forceElevated: true,
+//            brightness: Brightness.dark,
+//            iconTheme: new IconThemeData(color: Colors.white),
+//            textTheme: Theme.of(context).textTheme.apply(
+//                  bodyColor: Colors.white,
+//                  displayColor: Colors.white,
+//                ),
+//            title: new Text(title),
+//            bottom: _getTabBar(),
+//            actions: <Widget>[
+//              new IconButton(
+//                icon: new Icon(Icons.search),
+//                onPressed: () {},
+//              ),
+//              new PopupMenuButton<Choice>(
+//                itemBuilder: (BuildContext context) {
+//                  return choices.map((Choice choice) {
+//                    return new PopupMenuItem<Choice>(
+//                      value: choice,
+//                      child: new Text(choice.title),
+//                    );
+//                  }).toList();
+//                },
+//              ),
+//            ],
+//          ),
+//          new SliverList(
+//            delegate: new SliverChildListDelegate(
+//              buildTextViews(25),
+//            ),
+//          ),
+//        ],
+//      ),
+//      appBar: new AppBar(
+//        brightness: Brightness.dark,
+//        iconTheme: new IconThemeData(color: Colors.white),
+//        textTheme: Theme.of(context).textTheme.apply(
+//              bodyColor: Colors.white,
+//              displayColor: Colors.white,
+//            ),
+//        title: new Text(title),
+//        bottom: _getTabBar(),
+//        actions: <Widget>[
+//          new IconButton(
+//            icon: new Icon(Icons.search),
+//            onPressed: () {},
+//          ),
+//          new PopupMenuButton<Choice>(
+//            itemBuilder: (BuildContext context) {
+//              return choices.map((Choice choice) {
+//                return new PopupMenuItem<Choice>(
+//                  value: choice,
+//                  child: new Text(choice.title),
+//                );
+//              }).toList();
+//            },
+//          ),
+//        ],
+//      ),
       drawer: new Drawer(
         child: new ListView(
           padding: EdgeInsets.zero,
@@ -110,7 +270,7 @@ class _MainContainerPageState extends State<MainContainerPage> {
             ),
             new ListTile(
               leading: new Icon(Icons.remove_red_eye),
-              title: new Text(AuroraStrings.attention),
+              title: new Text(AuroraStrings.follow),
               onTap: () {
                 Navigator.pop(context);
               },
@@ -139,138 +299,43 @@ class _MainContainerPageState extends State<MainContainerPage> {
           ],
         ),
       ),
-      body: new Stack(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        alignment: new Alignment(1.0, 1.0),
-        children: <Widget>[
-//          new MultiStateView(
-//            content: new Center(
-//              child: new NotificationListener(
-//                onNotification: _onNotification,
-//                child: new RefreshIndicator(
-//                  key: _refreshIndicatorKey,
-//                  child: new CommonVideoList(
-//                    videos: widget.videos,
-//                  ),
-//                  onRefresh: _getVideoListInfo,
-//                ),
-//              ),
-//            ),
-//            resultState: widget.resultState,
-//            retry: _retry,
-//          ),
-          new CommonVideoList(videos: widget.videos,resultState: widget.refreshState,onRefresh:_getVideoListInfo,retry: _retry,loadMoreState: widget.loadMoreState,onLoadMore: _LoadMoreVideoListInfo,),
-        ],
-      ),
-
-      bottomNavigationBar: new MyBottomNavigation(),
+      bottomNavigationBar: new MyBottomNavigation(_pageController),
     );
   }
 
-  bool _onNotification(ScrollNotification notification) {
-    if (notification is ScrollUpdateNotification) {
-      // 当没去到底部的时候，maxScrollExtent和offset会相等，可以准确的判断到达底部还有多少距离时开始加载数据了。。
-      if (_scrollController.mostRecentlyUpdatedPosition.maxScrollExtent >
-              _scrollController.offset &&
-          _scrollController.mostRecentlyUpdatedPosition.maxScrollExtent -
-                  _scrollController.offset <=
-              50) {
-        // 要加载更多
-//        if (this.isMore && this.loadMoreStatus != LoadMoreStatus.loading) {
-//          // 有下一页
-//          print('load more');
-//          this.loadMoreStatus = LoadMoreStatus.loading;
-//          _loadMoreData();
-//          setState(() {});
-//
-//        } else {}
+  List buildTextViews(int count) {
+    List<Widget> strings = List();
+    for (int i = 0; i < count; i++) {
+      strings.add(new Padding(
+          padding: new EdgeInsets.all(16.0),
+          child: new Text("Item number " + i.toString(),
+              style: new TextStyle(fontSize: 20.0))));
+    }
+    return strings;
+  }
+
+  void onPageChanged(int index) {
+    setState(() {
+      showTabState = ShowTabState.hide;
+      switch (index) {
+        case 0:
+          title = AuroraStrings.home;
+          break;
+        case 1:
+          title = AuroraStrings.hot;
+          showTabState = ShowTabState.hot;
+          break;
+        case 2:
+          title = AuroraStrings.category;
+          break;
+        case 3:
+          title = AuroraStrings.follow;
+          showTabState = ShowTabState.follow;
+          break;
+        case 4:
+          title = AuroraStrings.mine;
+          break;
       }
-    }
-    return true;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    widget.refreshState = ResultState.loading;
-    _getVideoListInfo();
-  }
-
-  Future<Null> _retry() {
-    setState(() {
-      widget.refreshState = ResultState.loading;
-    });
-    return _getVideoListInfo();
-  }
-
-  Future<Null> _LoadMoreVideoListInfo(){
-    setState(() {
-      widget.loadMoreState = LoadMoreState.showLoading;
-    });
-    return Api.getHomeVideoListInfo(date, num).then((response) {
-      VideoListInfo info = new VideoListInfo.fromJson(response.data);
-      date = _getDateFromNextPageUrl(info.nextPageUrl);
-      num = _getNumFromNextPageUrl(info.nextPageUrl);
-      List<VideoData> videoDatas = info.itemList
-          .where(
-              (VideoData videoDate) => VIDEO_ITEM_TYPE_FOLLOW == videoDate.type)
-          .toList();
-      List<Video> videos =
-      videoDatas.map((VideoData videoDate) => videoDate.data).toList();
-      setState(() {
-        widget.videos.addAll(videos);
-        widget.loadMoreState = LoadMoreState.hide;
-      });
-    }, onError: (e) {
-      setState(() {
-        widget.loadMoreState = LoadMoreState.error;
-      });
     });
   }
-
-  Future<Null> _getVideoListInfo() {
-    date = 0;
-    num = 0;
-    return Api.getHomeVideoListInfo(date, num).then((response) {
-      VideoListInfo info = new VideoListInfo.fromJson(response.data);
-      date = _getDateFromNextPageUrl(info.nextPageUrl);
-      num = _getNumFromNextPageUrl(info.nextPageUrl);
-      List<VideoData> videoDatas = info.itemList
-          .where(
-              (VideoData videoDate) => VIDEO_ITEM_TYPE_FOLLOW == videoDate.type)
-          .toList();
-      List<Video> videos =
-          videoDatas.map((VideoData videoDate) => videoDate.data).toList();
-      setState(() {
-        widget.videos.clear();
-        widget.videos.addAll(videos);
-        widget.refreshState = ResultState.success;
-      });
-    }, onError: (e) {
-      setState(() {
-        widget.videos.clear();
-        widget.refreshState = ResultState.error;
-      });
-    }
-    );
-  }
-
-  int _getDateFromNextPageUrl(String nextPageUrl){
-    String date = nextPageUrl?.substring(nextPageUrl.indexOf("date=") + 5, nextPageUrl.indexOf("&"));
-    if(date.isNotEmpty){
-      return int.parse(date);
-    }else{
-      return 0;
-    }
-  }
-  int _getNumFromNextPageUrl(String nextPageUrl){
-    String num = nextPageUrl?.substring(nextPageUrl.indexOf("num=") + 4, nextPageUrl.length);
-    if(num.isNotEmpty){
-      return int.parse(num);
-    }else{
-      return 0;
-    }
-  }
-
 }

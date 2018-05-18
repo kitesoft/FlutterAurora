@@ -14,35 +14,33 @@ class CommonListLoadMore extends StatefulWidget {
 enum LoadMoreState { error, showLoading, noMore, hide }
 
 class _CommonListLoadMoreState extends State<CommonListLoadMore> {
-
   @override
   Widget build(BuildContext context) {
-    return
-      new Container(
+    return new Container(
       height: 80.0,
       child: new Stack(
         children: <Widget>[
           new Offstage(
-            offstage: widget.loadMoreState != LoadMoreState.showLoading,
+              offstage: widget.loadMoreState != LoadMoreState.showLoading,
               child: new Center(
-                child : new SizedBox(
-                    width: 30.0,
-                    height: 30.0,
-                    child: new CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                    ),
+                child: new SizedBox(
+                  width: 30.0,
+                  height: 30.0,
+                  child: new CircularProgressIndicator(
+                    strokeWidth: 2.5,
                   ),
-              )
-          ),
+                ),
+              )),
           new Offstage(
             offstage: widget.loadMoreState != LoadMoreState.noMore,
             child: new Center(
               child: new Text(
                 AuroraStrings.nomore,
                 style: new TextStyle(
-                    fontSize: 16.0,
-                    color: AuroraColors.textColor,
-                    fontStyle: FontStyle.italic),
+                  fontSize: 16.0,
+                  color: AuroraColors.textColor,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
           ),

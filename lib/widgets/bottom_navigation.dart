@@ -1,9 +1,9 @@
+import 'package:flutter/foundation.dart';
 // Copyright 2016 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_aurora/res/colors.dart';
 
 class NavigationIconView {
   NavigationIconView({
@@ -81,8 +81,14 @@ class CustomIcon extends StatelessWidget {
 }
 
 class MyBottomNavigation extends StatefulWidget {
+  
+  final PageController pageController;
+
+  MyBottomNavigation(@required this.pageController);
+  
   @override
   _MyBottomNavigationState createState() => new _MyBottomNavigationState();
+
 }
 
 class _MyBottomNavigationState extends State<MyBottomNavigation>
@@ -177,6 +183,7 @@ class _MyBottomNavigationState extends State<MyBottomNavigation>
           _navigationViews[_currentIndex].controller.reverse();
           _currentIndex = index;
           _navigationViews[_currentIndex].controller.forward();
+          widget.pageController.animateToPage(index, duration: new Duration(microseconds: 500), curve: Curves.fastOutSlowIn);
         });
       },
     );
