@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_aurora/res/colors.dart';
 import 'package:flutter_aurora/res/strings.dart';
 import 'package:flutter_aurora/widgets/bottom_navigation.dart';
+import 'package:flutter_aurora/widgets/page/category_detail_page.dart';
 import 'package:flutter_aurora/widgets/page/category_page.dart';
 import 'package:flutter_aurora/widgets/page/home_page.dart';
 import 'package:flutter_aurora/widgets/page/hot_page.dart';
@@ -50,6 +51,9 @@ class MyApp extends StatelessWidget {
         accentColor: AuroraColors.primaryColor,
       ),
       home: new MainContainerPage(),
+      routes: <String, WidgetBuilder> {
+        AuroraStrings.route_main: (BuildContext context) => new MainContainerPage(),
+      },
     );
   }
 }
@@ -185,70 +189,6 @@ class _MainContainerPageState extends State<MainContainerPage>
         },
         body: pageView,
       ),
-//      new CustomScrollView(
-//        slivers: <Widget>[
-//          new SliverAppBar(
-//            floating: true,
-//            snap: true,
-//            forceElevated: true,
-//            brightness: Brightness.dark,
-//            iconTheme: new IconThemeData(color: Colors.white),
-//            textTheme: Theme.of(context).textTheme.apply(
-//                  bodyColor: Colors.white,
-//                  displayColor: Colors.white,
-//                ),
-//            title: new Text(title),
-//            bottom: _getTabBar(),
-//            actions: <Widget>[
-//              new IconButton(
-//                icon: new Icon(Icons.search),
-//                onPressed: () {},
-//              ),
-//              new PopupMenuButton<Choice>(
-//                itemBuilder: (BuildContext context) {
-//                  return choices.map((Choice choice) {
-//                    return new PopupMenuItem<Choice>(
-//                      value: choice,
-//                      child: new Text(choice.title),
-//                    );
-//                  }).toList();
-//                },
-//              ),
-//            ],
-//          ),
-//          new SliverList(
-//            delegate: new SliverChildListDelegate(
-//              buildTextViews(25),
-//            ),
-//          ),
-//        ],
-//      ),
-//      appBar: new AppBar(
-//        brightness: Brightness.dark,
-//        iconTheme: new IconThemeData(color: Colors.white),
-//        textTheme: Theme.of(context).textTheme.apply(
-//              bodyColor: Colors.white,
-//              displayColor: Colors.white,
-//            ),
-//        title: new Text(title),
-//        bottom: _getTabBar(),
-//        actions: <Widget>[
-//          new IconButton(
-//            icon: new Icon(Icons.search),
-//            onPressed: () {},
-//          ),
-//          new PopupMenuButton<Choice>(
-//            itemBuilder: (BuildContext context) {
-//              return choices.map((Choice choice) {
-//                return new PopupMenuItem<Choice>(
-//                  value: choice,
-//                  child: new Text(choice.title),
-//                );
-//              }).toList();
-//            },
-//          ),
-//        ],
-//      ),
       drawer: new Drawer(
         child: new ListView(
           padding: EdgeInsets.zero,
