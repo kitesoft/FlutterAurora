@@ -11,6 +11,7 @@ import 'package:flutter_aurora/widgets/common_list_load_more.dart';
 import 'package:flutter_aurora/widgets/common_video_list.dart';
 import 'package:flutter_aurora/widgets/multi_state_layout.dart';
 import 'package:flutter_aurora/widgets/multi_state_layout.dart';
+import 'package:flutter_aurora/widgets/page/category_detail_page.dart';
 import 'package:flutter_aurora/widgets/ripple.dart';
 
 class CategoryPage extends StatefulWidget {
@@ -43,6 +44,7 @@ class CategoryPageState extends State<CategoryPage>
               child: new RefreshIndicator(
                   key: _refreshIndicatorKey,
                   child: new GridView.builder(
+                    padding: new EdgeInsets.all(10.0),
               itemCount: widget.categories.length,
                 gridDelegate: new SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
@@ -71,7 +73,12 @@ class CategoryPageState extends State<CategoryPage>
                         ),
                       ],
                     ),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, new MaterialPageRoute(
+                        fullscreenDialog: false,
+                        builder: (BuildContext context) => new CategoryDetailPage(categories: widget.categories,position: index,),
+                      ));
+                    },
                   );
                 },
 
@@ -90,7 +97,9 @@ class CategoryPageState extends State<CategoryPage>
   @override
   void initState() {
     super.initState();
-    widget.resultState = ResultState.loading;
+    if(widget.resultState == ResultState.success){
+      return;
+    }
     _getCategories();
   }
 

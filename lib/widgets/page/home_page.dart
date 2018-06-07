@@ -46,7 +46,9 @@ class HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin<H
   @override
   void initState() {
     super.initState();
-    widget.refreshState = ResultState.loading;
+    if(widget.refreshState == ResultState.success){
+      return;
+    }
     _getVideoListInfo();
   }
 

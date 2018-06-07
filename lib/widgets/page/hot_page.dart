@@ -11,13 +11,22 @@ const String STRATEGYALL = "historical";
 
 class HotContainerPage extends StatefulWidget {
   final TabController controller;
+  bool init = false;
+
   HotContainerPage({Key key, this.controller}) : super(key: key);
 
   @override
   HotContainerPageState createState() => new HotContainerPageState();
+
 }
 
-class HotContainerPageState extends State<HotContainerPage> {
+class HotContainerPageState extends State<HotContainerPage> with AutomaticKeepAliveClientMixin<HotContainerPage>{
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return new TabBarView(
@@ -35,6 +44,9 @@ class HotContainerPageState extends State<HotContainerPage> {
       ],
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
 class HotPage extends StatefulWidget {
@@ -63,7 +75,6 @@ class HotPageState extends State<HotPage>
   @override
   void initState() {
     super.initState();
-    widget.refreshState = ResultState.loading;
     _getVideoListInfo();
   }
 
